@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>채팅방 목록</h1>
+<input id="chat-name"><button id="create">채팅방 만들기</button>
+<ul>
+    <li th:each="room : ${rooms}">
+        <a th:href="@{|/chat/rooms/${room.id}}" th:text="${room.name}"></a>
+    </li>
+</ul>
+<script>
+    document.querySelector('#create').addEventListener('click',createRoom);
+
+    async function createRoom() {
+        const name = document.querySelector('#chat-name').value;
+        const response = await fetch('/chat/rooms/create', {
+            method: 'post',
+            headers: {'Content-Type' : 'text/plain'},
+            body: name
+        });
+        if (!response.ok) {
+            alert('에러에러');
+            return;
+        }
+        const text = await response.text();
+        if(text === '1') {
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>

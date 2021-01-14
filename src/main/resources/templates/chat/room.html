@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"  >
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${room.name}">{{room.name}}</title>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <style>
+       ul {
+           float: left;
+           width: 45%;
+           border: 1px solid black;
+           border-collapse: collapse;
+           height: 250px;
+           overflow-y: auto;
+           list-style-type: decimal;
+       }
+    </style>
+
+</head>
+<body>
+<h1 th:text="|채팅방 이름 : ${room.name}|"></h1>
+<h1 th:text="|채팅방 번호 : ${room.id}|"></h1>
+<h1 th:text="|생성 시간 : ${room.create}|"></h1>
+<div class="content" th:attr="data-room-id=${room.id},data-username=${username}">
+    <ul class="chat_box"></ul> <!-- 채팅창-->
+    <ul class="user_box"></ul> <!-- 유저목록-->
+    <input name="message">
+    <button class="send">보내기</button>
+    <h3><a th:href="@{/chat/rooms}">채팅방 목록</a></h3>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', load);
+
+    function load () {
+        const chatBox = document.querySelector(".chat_box"); //채팅창
+        const userBox = document.querySelector(".user_box"); //유저창
+        const messageInput = document.querySelector("input[name=message]"); //메시지 입력창
+        const sendBtn = document.querySelector(".send"); //보내기 버튼
+        const roomId = document.querySelector("div.content").getAttribute("data-room-id");
+        const username = document.querySelector("div.content").getAttribute("data-username");
+
+        // handshake
+        const sock = new SockJS("/ws/chat");
+
+        // onopen : connection이 맺어졌을 때의 callback
+        sock.onopen = function () {
+            // send : connection으로 message를 전달
+            // connection이 맺어진 후 가입(JOIN) 메시지를 전달
+            sock.send(JSON.stringify({chatRoomId: roomId, type: 'JOIN', username: username}));
+
+            // onmessage : message를 받았을 때의 callback
+            sock.onmessage = function (e) {
+                if (chatBox.childElementCount >= 3) {
+                    chatBox.firstChild.remove();
+                }
+
+                const content = JSON.parse(e.data);
+                const li = document.createElement('li');
+                li.textContent = `${content.message}`;
+                if (content.type === 'CHAT')
+                    chatBox.appendChild(li);
+                else userBox.appendChild(li);
+            }
+        }
+        sock.onclose = () => {
+            alert('연결이 끊겼습니다.');
+        }
+        sock.onerror = () => {
+            alert('에러에러');
+        }
+
+        sendBtn.addEventListener('click',function () {
+            const message = messageInput.value;
+            sock.send(JSON.stringify({chatRoomId: roomId, type: 'CHAT', message: message, username: username}));
+            messageInput.value = '';
+        });
+    }
+</script>
+</body>
+</html>
